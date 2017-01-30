@@ -1,0 +1,6 @@
+dist/
+test/
+Gruntfile.js
+jscs.json
+jshint.json
+
