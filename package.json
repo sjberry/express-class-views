@@ -1,6 +1,6 @@
 {
   "name": "express-class-views",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "author": "Steven Berry <steven@sberry.me>",
   "description": "Class-based views for ExpressJS.",
   "license": "MIT",

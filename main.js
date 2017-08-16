@@ -8,6 +8,11 @@ const httpErrors = require('http-errors');
 let viewMethods = new WeakMap();
 
 
+function isPromise(obj) {
+	return !!obj && (typeof obj === 'object' || typeof obj === 'function') && typeof obj.then === 'function' && typeof obj.catch === 'function';
+}
+
+
 class View {
 	constructor() {
 		let self = this;
@@ -43,7 +48,14 @@ class View {
 				next(error);
 			}
 			else {
-				handler.call(instance, req, res, next);
+				let result = handler.call(instance, req, res, next);
+
+				if (isPromise(result)) {
+					result
+						.catch(function(err) {
+							next(err);
+						});
+				}
 			}
 		}
 
