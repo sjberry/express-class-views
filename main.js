@@ -1,67 +1,76 @@
-'use strict';
-
 const http = require('http');
 
-const httpErrors = require('http-errors');
+const createHttpError = require('http-errors');
 
+const properties = new WeakMap();
 
-let viewMethods = new WeakMap();
+function errorGenerator(code) {
+  let stringCode = String(code);
+  let numericCode = Number.parseInt(stringCode);
 
+  if (Number.isNaN(numericCode) || !http.STATUS_CODES.hasOwnProperty(stringCode)) {
+    throw new Error(`Invalid status code: ${stringCode}`);
+  }
 
-function isPromise(obj) {
-	return !!obj && (typeof obj === 'object' || typeof obj === 'function') && typeof obj.then === 'function' && typeof obj.catch === 'function';
+  let err = new Error(http.STATUS_CODES[stringCode]);
+
+  err.status = err.statusCode = numericCode;
+
+  return err;
 }
-
 
 class View {
-	constructor() {
-		let self = this;
+  constructor() {
+    let methods = http.METHODS.filter(d => {
+      let method = d.toLowerCase();
 
-		let methods = http.METHODS.filter(function(d) {
-			let method = d.toLowerCase();
+      return typeof this[method] === 'function';
+    }).join(',');
 
-			return typeof self[method] === 'function';
-		}).join(',');
+    properties.set(this, {
+      methods: methods,
+    });
+  }
 
-		viewMethods.set(this, methods);
-	}
+  options(req, res, next) {
+    let methods = properties.get(this).methods;
 
-	options(req, res, next) {
-		let methods = viewMethods.get(this);
+    res.setHeader('Allowed', methods);
+    res.sendStatus(204);
+  }
 
-		res.setHeader('Allowed', methods);
-		res.sendStatus(204);
-	}
+  static handler(options = {}) {
+    let Constructor = this;
+    let instance = new Constructor();
+    let errors;
 
-	static handler(options = {}) {
-		let Constructor = this;
-		let instance = new Constructor();
-		let errors = (typeof options.errors === 'function') ? options.errors : httpErrors;
+    if (typeof options.errors === 'function') {
+      errors = options.errors;
+    } else if (typeof this.errors === 'function') {
+      errors = this.errors;
+    } else {
+      errors = createHttpError;
+    }
 
-		function middleware(req, res, next) {
-			let method = (typeof req.method === 'string') ? req.method.toLowerCase() : '';
-			let handler = instance[method];
+    async function middleware(req, res, next) {
+      let method = typeof req.method === 'string' ? req.method.toLowerCase() : '';
+      let handler = instance[method];
 
-			if (typeof handler !== 'function') {
-				let error = errors(405);
+      if (typeof handler !== 'function') {
+        let err = errors(405);
 
-				next(error);
-			}
-			else {
-				let result = handler.call(instance, req, res, next);
+        next(err);
+      } else {
+        try {
+          await handler.call(instance, ...arguments);
+        } catch (err) {
+          next(err);
+        }
+      }
+    }
 
-				if (isPromise(result)) {
-					result
-						.catch(function(err) {
-							next(err);
-						});
-				}
-			}
-		}
-
-		return middleware;
-	}
+    return middleware;
+  }
 }
-
 
 module.exports = View;
