@@ -9,8 +9,34 @@
     "url": "https://github.com/sjberry/express-class-views.git"
   },
   "main": "main",
+  "scripts": {
+    "lint": "eslint .",
+    "test": "jest"
+  },
   "dependencies": {
+    "http-errors": "^1.7.2"
   },
   "devDependencies": {
+    "eslint": "^5.16.0",
+    "eslint-config-prettier": "^4.2.0",
+    "eslint-plugin-prettier": "^3.1.0",
+    "express": "^4.16.4",
+    "jest": "^24.8.0",
+    "mkdirp": "^0.5.1",
+    "prettier": "^1.17.0",
+    "request": "^2.88.0",
+    "request-promise-native": "^1.0.7"
+  },
+  "jest": {
+    "moduleNameMapper": {
+      "@locals(.*)": "<rootDir>$1"
+    },
+    "setupFilesAfterEnv": [
+      "<rootDir>/__tests__/setup.js"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "<rootDir>/__tests__/setup.js"
+    ]
   }
 }
